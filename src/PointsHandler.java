@@ -3,7 +3,7 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class PointsHandler {
-    private List<Point> points;
+    private final List<Point> points;
     private final double inf;
 
     public PointsHandler(double inf) {
@@ -31,10 +31,35 @@ public class PointsHandler {
         }
     }
 
+    public void addZeroRectangle(double xStart, double yStart, double xEnd, double yEnd, int size) {
+        int sizeX = Math.max((int) Math.sqrt(size * (xEnd - xStart) / (yEnd - yStart)), 1);
+        int sizeY = size / sizeX;
+
+        for (int i = 0; i < sizeX / 2; i++) {
+            for (int j = 0; j < sizeY / 2; j++) {
+                double x = (1d / (1 + i * i) + 0.5) * (xEnd - xStart) + xStart;
+                double y = (1d / (1 + j * j) + 0.5) * (yEnd - yStart) + yStart;
+                addPoint(x, y);
+                addPoint(-x, y);
+                addPoint(x, -y);
+                addPoint(-x, -y);
+            }
+        }
+    }
+
     public void addLine(double xStart, double yStart, double xEnd, double yEnd, int size) {
         for (int i = 0; i < size; i++) {
             double x = (double) i / size * (xEnd - xStart) + xStart;
             double y = (double) i / size * (yEnd - yStart) + yStart;
+            addPoint(x, y);
+
+        }
+    }
+
+    public void addZeroLine(double xStart, double yStart, double xEnd, double yEnd, int size) {
+        for (int i = 0; i < size; i++) {
+            double x = (1d / (1 + i * i)) * (xEnd - xStart) + xStart;
+            double y = (1d / (1 + i * i)) * (yEnd - yStart) + yStart;
             addPoint(x, y);
 
         }
