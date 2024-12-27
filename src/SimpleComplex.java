@@ -55,6 +55,15 @@ public record SimpleComplex(double real, double imaginary) implements Cloneable 
         return new SimpleComplex(newR * Math.cos(newTheta), newR * Math.sin(newTheta));
     }
 
+    public SimpleComplex deSqrt() {
+        double R = abs();
+        double theta = Math.atan2(imaginary, real);
+        if (theta < 0) return new SimpleComplex(0, 0);
+        double newR = R * R;
+        double newTheta = theta * 2;
+        return new SimpleComplex(newR * Math.cos(newTheta), newR * Math.sin(newTheta));
+    }
+
     public double abs() {
         return Math.sqrt(real * real + imaginary * imaginary);
     }

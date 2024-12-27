@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -19,6 +20,14 @@ public class PointsHandler {
         points.removeIf(p -> p.x == x && p.y == y);
     }
 
+    public void addHalfPlane(int size, int visibleSize) {
+        addRectangle(-inf, -inf, inf, inf, size);
+        addRectangle(-visibleSize, -visibleSize, visibleSize, visibleSize, size);
+        int t = 2 * visibleSize * visibleSize;
+        addRectangle(-t, -t, t, t, size);
+        addZeroRectangle(-inf, -inf, inf, inf, size / 10);
+    }
+
     public void addRectangle(double xStart, double yStart, double xEnd, double yEnd, int size) {
         int sizeX = Math.max((int) Math.sqrt(size * (xEnd - xStart) / (yEnd - yStart)), 1);
         int sizeY = size / sizeX;
@@ -35,16 +44,47 @@ public class PointsHandler {
         int sizeX = Math.max((int) Math.sqrt(size * (xEnd - xStart) / (yEnd - yStart)), 1);
         int sizeY = size / sizeX;
 
-        for (int i = 0; i < sizeX / 2; i++) {
-            for (int j = 0; j < sizeY / 2; j++) {
-                double x = (1d / (1 + i * i) + 0.5) * (xEnd - xStart) + xStart;
-                double y = (1d / (1 + j * j) + 0.5) * (yEnd - yStart) + yStart;
-                addPoint(x, y);
-                addPoint(-x, y);
-                addPoint(x, -y);
-                addPoint(-x, -y);
+        ArrayList<UnaryOperator<Double>> densities = new ArrayList<>();
+        densities.add(value -> 1 / (1 + Math.pow(value, 4)) + 0.5);
+        densities.add(value -> Math.pow(value, 0.3) / (1 + Math.pow(value, 3)) + 0.5);
+        densities.add(value -> Math.pow(value, 0.6) / (1 + Math.pow(value, 3)) + 0.5);
+        densities.add(value -> Math.pow(value, 0.9) / (1 + Math.pow(value, 3)) + 0.5);
+        densities.add(value -> 1 / (1 + Math.pow(value, 2)) + 0.5);
+        densities.add(value -> 1 / (1 + Math.pow(value, 1.8)) + 0.5);
+        densities.add(value -> 1 / (1 + Math.pow(value, 1.6)) + 0.5);
+        densities.add(value -> 1 / (1 + Math.pow(value, 1.3)) + 0.5);
+        densities.add(value -> 1 / (1 + Math.pow(value, 0.8)) + 0.5);
+
+        for (int i = 0; i < sizeX; i++) {
+            for (int j = 0; j < sizeY; j++) {
+                for (UnaryOperator<Double> d : densities) {
+                    double x = d.apply((double) i) * (xEnd - xStart) + xStart;
+                    double y = d.apply((double) j) * (yEnd - yStart) + yStart;
+                    addPoint(x, y);
+                    addPoint(-x, y);
+                    addPoint(x, -y);
+                    addPoint(-x, -y);
+                }
             }
         }
+    }
+
+    public void addCircle(double radius, int size) {
+        int linSize = (int) Math.sqrt(4 / Math.PI * size); // area of circle is 4/pi of area of square
+        for (int i = 0; i < linSize; i++)
+            for (int j = 0; j < linSize; j++) {
+                double x = ((double) i / linSize - 0.5) * radius * 2;
+                double y = (0.5 - (double) j / linSize) * radius * 2;
+                if (x * x + y * y <= radius * radius)
+                    addPoint(x, y);
+            }
+    }
+
+
+    public void addMyLine(int size, int visibleSize) {
+        addLine(0, 0, inf, 0, size);
+        addLine(0, 0, visibleSize * visibleSize, 0, size);
+        addZeroLine(0, 0, inf, 0, size);
     }
 
     public void addLine(double xStart, double yStart, double xEnd, double yEnd, int size) {
@@ -52,7 +92,6 @@ public class PointsHandler {
             double x = (double) i / size * (xEnd - xStart) + xStart;
             double y = (double) i / size * (yEnd - yStart) + yStart;
             addPoint(x, y);
-
         }
     }
 
@@ -84,8 +123,8 @@ public class PointsHandler {
                 if (p == null)
                     System.out.println("Null point");
                 else if (p.inRadius(radius)) {
-                    int x = (int) ((p.x / radius / 2 + 0.5) * (width - 1));
-                    int y = (int) ((-p.y / radius / 2 + 0.5) * (height - 1));
+                    int x = (int) ((p.x / radius / 2 + 0.5) * width);
+                    int y = (int) ((0.5 - p.y / radius / 2) * height);
                     plane[x][y] = true;
                 }
             }

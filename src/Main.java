@@ -3,69 +3,69 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 public class Main {
     public static void main(String[] args) {
         int width = 400, height = 400;
         int size = 2; // size of visible square
-        int inf = 800;
-        String[] imageNames = {"start", "reversed", "halfed", "circled"};
-        BufferedImage[] images = new BufferedImage[imageNames.length];
+        int inf = 2000;
+        Map<String, BufferedImage> images = new HashMap<>();
 
         SimpleComplex I = new SimpleComplex(0, 1);
+        SimpleComplex ONE = new SimpleComplex(1, 0);
 
-        UnaryOperator<SimpleComplex> halfPlaneToCircle = (z) ->
+        UnaryOperator<SimpleComplex> halfPlaneToCircle = z ->
                 I.multiply(z.subtract(I).divide(z.add(I))); // i(z-i)/(z+i)
-        UnaryOperator<SimpleComplex> nega = (z) -> z.multiply(-1); // -z
+        UnaryOperator<SimpleComplex> CircleToHalfPlane = z ->
+                z.add(I).divide(z.multiply(I).add(ONE)); // (z+i)/(iz+1)
+        UnaryOperator<SimpleComplex> nega = z -> z.multiply(-1); // -z
         UnaryOperator<SimpleComplex> square = SimpleComplex::square; // z^2
-        UnaryOperator<SimpleComplex> root = (z) -> z.power(0.5); // sqrt(z)
-
-        UnaryOperator<SimpleComplex> ourTransformationTo = (z) ->
-                halfPlaneToCircle.apply(root.apply(nega.apply(z)));
+        UnaryOperator<SimpleComplex> root = z -> z.power(0.5); // sqrt(z)
 
         long start = System.currentTimeMillis();
-        PointsHandler ph = new PointsHandler(inf);
-        PointsHandler ph1 = new PointsHandler(inf);
+        boolean[][] someSet;
+        boolean[][] otherSet;
 
-        ph.addRectangle(-inf, -inf, inf, inf, 10 * 1000000); // plane
-        ph.addRectangle(-6 * size, -6 * size, 6 * size, 6 * size, 10 * 1000000);
-        ph.addZeroRectangle(-inf, -inf, inf, inf, 10 * 1000000);
-        ph.addZeroRectangle(-inf / 8, -inf / 8, inf / 8, inf / 8, 10 * 1000000);
+        PointsHandler plane = new PointsHandler(inf);
+        PointsHandler line = new PointsHandler(inf);
+        plane.addHalfPlane(600000, size);
+        line.addMyLine(100000, size);
 
-        ph1.addLine(0, 0, inf, 0, 10000); // line
-        ph1.addLine(0, 0, size*4, 0, 10000); // line
-        ph1.addZeroLine(0, 0, inf/4, 0, 80000);
-        images[0] = SomeDrawer.addToImage(SomeDrawer.getImage(ph.getPlane(width, height, size), Color.BLACK),
-                ph1.getPlane(width, height, size), Color.WHITE);
+        someSet = plane.getPlane(width, height, size);
+        otherSet = line.getPlane(width, height, size);
+        images.put("start", SomeDrawer.addToImage(SomeDrawer.getImage(someSet, Color.BLACK), otherSet, Color.WHITE));
 
-        ph.transform(nega);
-        ph1.transform(nega);
-        images[1] = SomeDrawer.addToImage(SomeDrawer.getImage(ph.getPlane(width, height, size), Color.BLACK),
-                ph1.getPlane(width, height, size), Color.WHITE);
+        plane.transform(nega);
+        line.transform(nega);
+        someSet = plane.getPlane(width, height, size);
+        otherSet = line.getPlane(width, height, size);
+        images.put("reversed", SomeDrawer.addToImage(SomeDrawer.getImage(someSet, Color.BLACK), otherSet, Color.WHITE));
 
-        ph.transform(root);
-        ph1.transform(root);
-        images[2] = SomeDrawer.addToImage(SomeDrawer.getImage(ph.getPlane(width, height, size), Color.BLACK),
-                ph1.getPlane(width, height, size), Color.WHITE);
+        plane.transform(root);
+        line.transform(root);
+        someSet = plane.getPlane(width, height, size);
+        otherSet = line.getPlane(width, height, size);
+        images.put("halfed", SomeDrawer.addToImage(SomeDrawer.getImage(someSet, Color.BLACK), otherSet, Color.WHITE));
 
-        ph.transform(halfPlaneToCircle);
-        ph1.transform(halfPlaneToCircle);
-        images[3] = SomeDrawer.addToImage(SomeDrawer.getImage(ph.getPlane(width, height, size), Color.BLACK),
-                ph1.getPlane(width, height, size), Color.WHITE);
+        plane.transform(halfPlaneToCircle);
+        line.transform(halfPlaneToCircle);
+        someSet = plane.getPlane(width, height, size);
+        otherSet = line.getPlane(width, height, size);
+        images.put("circled", SomeDrawer.addToImage(SomeDrawer.getImage(someSet, Color.BLACK), otherSet, Color.WHITE));
 
         System.out.println("Calculated in " + (System.currentTimeMillis() - start) / 1000f + " s");
 
         // save images
-        File[] imageFiles = new File[imageNames.length];
-        for (int i = 0; i < imageNames.length; i++)
-            imageFiles[i] = new File("images/" + imageNames[i] + ".png");
-
-        try {
-            for (int i = 0; i < imageNames.length; i++)
-                ImageIO.write(images[i], "png", imageFiles[i]);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        images.forEach((name, image) ->
+        {
+            try {
+                ImageIO.write(image, "png", new File("images/" + name + ".png"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }
